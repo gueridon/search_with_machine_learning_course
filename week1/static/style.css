@@ -113,3 +113,7 @@ Headers and footers
     align-items: center;
     justify-content: center;
 }
+
+a:link {
+    text-decoration: none;
+  }
