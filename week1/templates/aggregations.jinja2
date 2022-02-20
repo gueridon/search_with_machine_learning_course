@@ -47,5 +47,10 @@
       {% endfor %}
     {% endif %}
   </div>
+  <div class="aggregations-result">
+    <div class="agg-header">Missing Data</div>
+    <div>image: {{ search_response.aggregations.missing_images.doc_count }}</div>
+  </div>
   {% endif %}
+  
 </div>
