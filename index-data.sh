@@ -15,6 +15,7 @@ LOGSTASH_HOME="/workspace/logstash/logstash-7.13.2"
 LOGS_DIR="/workspace/logs"
 
 while getopts ':p:q:b:e:g:l:h' c
+#while getopts ':q:e:g:l:h' c
 do
   case $c in
     p) PRODUCTS_JSON_FILE=$OPTARG ;;

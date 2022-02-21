@@ -21,7 +21,7 @@ reindex_init()
   # echo "Indexing data ..."
   # sh index-data.sh
   echo "Indexing sample data ..."
-  sh index-data-sample.sh
+  sh index-data.sh
 }
 
 reindex_init
