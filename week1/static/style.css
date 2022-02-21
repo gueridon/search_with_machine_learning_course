@@ -1,3 +1,8 @@
+:root {
+    font-family: Helvetica, sans-serif;
+  }
+
+
 /* Search stylings */
 #search-box {
     height: 50px;
@@ -20,7 +25,7 @@
 /* See https://css-tricks.com/snippets/css/complete-guide-grid/ for details on grid */
 #all-results {
     display: grid;
-    grid-template-columns: 200px 90%;
+    grid-template-columns: 17% 80%;
     grid-template-rows: 100px;
     grid-column-gap: 15px;
 }
@@ -31,6 +36,7 @@
 
 .search-result{
     margin-bottom: 10px;
+    padding: 1em;
 }
 
 .search-result > img{
@@ -63,6 +69,9 @@
     
 }
 
+.aggregation {
+    padding: 3px;
+}
 
 #aggregations-container{
     grid-row-start: 2;
@@ -116,4 +125,5 @@ Headers and footers
 
 a:link {
     text-decoration: none;
+    color: #21409A;
   }
