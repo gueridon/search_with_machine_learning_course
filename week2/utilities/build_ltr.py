@@ -18,7 +18,8 @@ import search_utils as su
 import xgb_utils as xgbu
 from opensearchpy import OpenSearch
 
-
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 if __name__ == "__main__":
@@ -239,26 +240,31 @@ if __name__ == "__main__":
         train_df = None
         if args.train_file:  # these should be pre-filtered, assuming we used our splitter, so let's not waste time filtering here
             train_df = pd.read_csv(args.train_file, parse_dates=['click_time', 'query_time'])
+            # print("DEBUG - train_df?", train_df.head(5))
         else:
             print("You must provide the --train_file option")
             exit(2)
 
+
         if args.synthesize:
             (impressions_df, query_ids_map) = data_prepper.synthesize_impressions(train_df,
-                                                                                  min_impressions=args.min_impressions,
-                                                                                  min_clicks=args.min_clicks)
+                                                                                    min_impressions=args.min_impressions,
+                                                                                min_clicks=args.min_clicks)
         else:
             # use the synthesize to feed into our generate
             (impressions_df, query_ids_map) = data_prepper.synthesize_impressions(train_df,
                                                                                   min_impressions=args.min_impressions,
                                                                                   min_clicks=args.min_clicks)
+            # print("DEBUG - was impression data present (1):", impressions_df.head(5))                                                                    
             impressions_df.drop(["product_name", "sku"], axis=1)
             impressions_df = impressions_df.sample(n=args.generate_num_rows).reset_index(drop=True)  # shuffle things
+            # print("DEBUG - was impression data present (2):", impressions_df.head(5))  
             # impressions_df = impressions_df[:args.generate_num_rows]
             (impressions_df, query_ids_map) = data_prepper.generate_impressions(impressions_df,
                                                                                 query_ids_map,
                                                                                 min_impressions=args.min_impressions,
                                                                                 min_clicks=args.min_clicks)  # impressions as a Pandas DataFrame
+        # print("DEBUG - was impression data present (3):", impressions_df.head(5))  
         print("Writing impressions to file: %s/%s" % (output_dir, args.impressions_file))
         impressions_df.to_csv("%s/%s" % (output_dir, args.impressions_file), index=False)
         query_ids = query_ids_map
@@ -281,7 +287,7 @@ if __name__ == "__main__":
     if args.create_xgb_training and args.impressions_file:
         print("Loading impressions from %s/%s" % (output_dir, args.impressions_file))
         impressions_df = pd.read_csv("%s/%s" % (output_dir, args.impressions_file))
-
+        # print("DEBUG - impression_df", impressions_df.head(10))
         if impressions_df is not None:
             # We need a map of normalize types for our features.  Would be nice if we could store this on the featureset
             normalize_type_map = {}
@@ -296,6 +302,9 @@ if __name__ == "__main__":
                 # Log our features for the training set
                 print("Logging features")
                 features_df = data_prepper.log_features(impressions_df, terms_field=args.ltr_terms_field)
+
+                # print("DEBUG - featureset:", features_df)
+
                 # Calculate some stats so we can normalize values.
                 # Since LTR only supports min/max, mean/std. dev and sigmoid, we can only do that
                 if args.normalize_json:

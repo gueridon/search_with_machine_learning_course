@@ -59,7 +59,8 @@ if [ $? -ne 0 ] ; then
 fi
 
 # Create our impressions (positive/negative) data set, e.g. all sessions (with LTR features added in already)
-echo "Creating impressions data set" # outputs to $OUTPUT_DIR/impressions.csv by default
+echo "Creating impressions data set $SYNTHESIZE" # outputs to $OUTPUT_DIR/impressions.csv by default
+echo 
 python $WEEK/utilities/build_ltr.py --generate_impressions  --output_dir "$OUTPUT_DIR" --train_file "$OUTPUT_DIR/train.csv" $SYNTHESIZE
 if [ $? -ne 0 ] ; then
   exit 2

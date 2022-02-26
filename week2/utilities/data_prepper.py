@@ -119,7 +119,7 @@ class DataPrepper:
         no_results = set()
         for key in query_gb.groups.keys():
             query_id, query_counter = self.__get_query_id(key, query_ids_map, query_counter)
-            #print("Q[%s]: %s" % (query_id, key))
+            # print("Q[%s]: %s" % (query_id, key))
             query_times_seen = 0 # careful here
             prior_clicks_for_query = query_gb.get_group(key)
             prior_doc_ids = None
@@ -160,9 +160,9 @@ class DataPrepper:
                             product_names.append(hit['_source']['name'][0])
                         else:
                             product_names.append("SKU: %s -- No Name" % sku)
-                        # print("Name: {}\n\nDesc: {}\n".format(hit['_source']['name'], hit['_source']['shortDescription']))
+                        print("Name: {}\n\nDesc: {}\n".format(hit['_source']['name'], hit['_source']['shortDescription']))
 
-                    #print("\tQ[%s]: %s clicked" % (query_id, total_clicked_docs_per_query))
+                    print("\tQ[%s]: %s clicked" % (query_id, total_clicked_docs_per_query))
                 else:
                     if response and (response['hits']['hits'] == None or len(response['hits']['hits']) == 0):
                         print("No results for query: %s" % key)
@@ -190,6 +190,7 @@ class DataPrepper:
     def log_features(self, train_data_df, terms_field="_id"):
         feature_frames = []
         query_gb = train_data_df.groupby("query")
+        # print("DEBUG:", query_gb.first())
         no_results = {}
         ctr = 0
         #print("Number queries: %s" % query_gb.count())
@@ -206,6 +207,7 @@ class DataPrepper:
             click_prior_query = qu.create_prior_queries_from_group(group)
             ltr_feats_df = self.__log_ltr_query_features(group[:1]["query_id"], key, doc_ids, click_prior_query, no_results,
                                                          terms_field=terms_field)
+            # print("DEBUG:", ltr_feats_df)
             if ltr_feats_df is not None:
                 feature_frames.append(ltr_feats_df)
 
@@ -232,25 +234,47 @@ class DataPrepper:
         log_query = lu.create_feature_log_query(key, query_doc_ids, click_prior_query, self.featureset_name,
                                                 self.ltr_store_name,
                                                 size=len(query_doc_ids), terms_field=terms_field)
+
+        
         # IMPLEMENT_START --
-        print("IMPLEMENT ME: __log_ltr_query_features: Extract log features out of the LTR:EXT response and place in a data frame")
+        # print("IMPLEMENT ME: __log_ltr_query_features: Extract log features out of the LTR:EXT response and place in a data frame")
         # Loop over the hits structure returned by running `log_query` and then extract out the features from the response per query_id and doc id.  Also capture and return all query/doc pairs that didn't return features
         # Your structure should look like the data frame below
-        feature_results = {}
-        feature_results["doc_id"] = []  # capture the doc id so we can join later
-        feature_results["query_id"] = []  # ^^^
-        feature_results["sku"] = []
-        feature_results["salePrice"] = []
-        feature_results["name_match"] = []
-        rng = np.random.default_rng(12345)
-        for doc_id in query_doc_ids:
-            feature_results["doc_id"].append(doc_id)  # capture the doc id so we can join later
-            feature_results["query_id"].append(query_id)
-            feature_results["sku"].append(doc_id)  # ^^^
-            feature_results["salePrice"].append(rng.random())
-            feature_results["name_match"].append(rng.random())
-        frame = pd.DataFrame(feature_results)
-        return frame.astype({'doc_id': 'int64', 'query_id': 'int64', 'sku': 'int64'})
+        # feature_results = {}
+        # feature_results["doc_id"] = []  # capture the doc id so we can join later
+        # feature_results["query_id"] = []  # ^^^
+        # feature_results["sku"] = []
+        # feature_results["salePrice"] = []
+        # feature_results["name_match"] = []
+        # rng = np.random.default_rng(12345)
+        # for doc_id in query_doc_ids:
+        #     feature_results["doc_id"].append(doc_id)  # capture the doc id so we can join later
+        #     feature_results["query_id"].append(query_id)
+        #     feature_results["sku"].append(doc_id)  # ^^^
+        #     feature_results["salePrice"].append(rng.random())
+        #     feature_results["name_match"].append(rng.random())
+
+        ## NB ###############
+        try:
+            response = self.opensearch.search(body=log_query, index=self.index_name)
+        except RequestError as e:
+            print(e, log_query)
+            raise re
+        # print(response)
+        hit_list = response["hits"]["hits"]
+        feature_results = []
+        for hit in hit_list:
+            log_entry = hit["fields"]["_ltrlog"][0]["log_entry"]
+            hit_features = {feature["name"]: feature.get("value", 0) for feature in log_entry}
+            hit_features["doc_id"] = int(hit["_id"])
+            hit_features["sku"] = int(hit['_source']['sku'][0])
+            hit_features["query_id"] = int(query_id)
+            feature_results.append(hit_features)
+        ## NB ###############
+        # frame = pd.DataFrame(feature_results)
+        #cast_frame = frame.astype({'doc_id': 'int64', 'query_id': 'int64', 'sku': 'int64'})
+        # print("__log_ltr_query_features", cast_frame.head(10))
+        return pd.DataFrame(feature_results)
         # IMPLEMENT_END
 
     # Can try out normalizing data, but for XGb, you really don't have to since it is just finding splits
@@ -301,5 +325,83 @@ class DataPrepper:
 
     # Determine the number of clicks for this sku given a query (represented by the click group)
     def __num_clicks(self, all_skus_for_query, test_sku):
-        print("IMPLEMENT ME: __num_clicks(): Return how many clicks the given sku received in the set of skus passed ")
-        return 0
+        # print("IMPLEMENT ME: __num_clicks(): Return how many clicks the given sku received in the set of skus passed ")
+        ## NB ###############
+        return all_skus_for_query[all_skus_for_query == test_sku].count()
+
+
+## sample [hit]
+
+# {
+#     '_index': 'bbuy_products',
+#     '_type': '_doc',
+#     '_id': '3158389',
+#     '_score': 0.0,
+#     '_source': {
+#         'onlineAvailability': ['false'], 
+#         'active': ['false'], 
+#         'bestBuyItemId': ['1619963'], 
+#         'class': ['DVD SOFTWARE'], 
+#         'quantityLimit': ['1'], 
+#         'subclassId': ['1908'], 
+#         'homeDelivery': ['false'], 
+#         'sku': ['3158389'], 
+#         'name': ['Big Bang Theory: Complete Fourth Season - DVD'], 
+#         'type': ['Movie'], 
+#         'inStorePickup': ['false'], 
+#         'regularPrice': ['44.99'], 
+#         'categoryLeaf': ['cat02015'], 
+#         '@version': '1', 
+#         'productId': ['2261076'], 
+#         'salesRankLongTerm': ['230126'], 
+#         'inStoreAvailability': ['false'], 
+#         'department': ['VIDEO/COMPACT DISC'], 
+#         'customerReviewAverage': ['5.0'], 
+#         'image': ['http://images.bestbuy.com/BestBuy_US/en_US/images/musicmoviegame/pdpimages/3158389.jpg'], 
+#         'onSale': ['false'], 
+#         'categoryPath': ['Best Buy', 'Movies &amp; Music', 'Movies &amp; TV Shows'], 
+#         'customerReviewCount': ['2'], 
+#         'categoryPathIds': ['cat00000', 'abcat0600000', 'cat02015'], 
+#         'classId': ['126'], 
+#         'subclass': ['TV-A-Z'], 
+#         'releaseDate': ['2011-09-13'], 
+#         'startDate': ['2011-02-15'], 
+#         'tags': ['multiline'], 
+#         'salePrice': ['44.99'], 
+#         'digital': ['false'], 
+#         'categoryPathCount': ['3.0'], 
+#         'departmentId': ['8'], 
+#         '@timestamp': '2022-02-22T21:29:55.874Z'}, 
+#         'fields': 
+#         {
+#             '_ltrlog': 
+#             [
+#                 {
+#                     'log_entry': [
+#                         {
+#                             'name': 'name_match', 
+#                             'value': 18.933327
+#                         }, 
+#                         {
+#                             'name': 'name_phrase_match', 
+#                             'value': 18.933327
+#                         }, 
+#                         {
+#                             'name': 'name_hyphens_min_df', 
+#                             'value': 346.0
+#                         },
+#                         {
+#                             'name': 'salePrice'
+#                             , 'value': 44.99
+#                         },
+#                         {
+#                             'name': 'regularPrice',
+#                             'value': 44.99}
+#                         ]
+#                 }
+#             ]
+#         }, 
+#     'matched_queries': ['logged_featureset']
+# }
+
+
