@@ -1,4 +1,7 @@
-data/phone_products/phone_products.xml
+phone_products/
+pruned_products/
+computer_products/
+*cooking*
 output/
 logstash-*
 # Byte-compiled / optimized / DLL files
