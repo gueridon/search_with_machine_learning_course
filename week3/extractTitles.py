@@ -3,15 +3,18 @@ import random
 import xml.etree.ElementTree as ET
 import argparse
 from pathlib import Path
+from nltk.stem.snowball import SnowballStemmer
+
+STEMMER = SnowballStemmer("english")
 
 directory = r'/workspace/search_with_machine_learning_course/data/pruned_products'
 parser = argparse.ArgumentParser(description='Process some integers.')
 general = parser.add_argument_group("general")
 general.add_argument("--input", default=directory,  help="The directory containing the products")
-general.add_argument("--output", default="/workspace/datasets/fasttext/titles.txt", help="the file to output to")
+general.add_argument("--output", default="/workspace/datasets/fasttext/phone_titles.txt", help="the file to output to")
 
 # Consuming all of the product data takes a while. But we still want to be able to obtain a representative sample.
-general.add_argument("--sample_rate", default=0.1, type=float, help="The rate at which to sample input (default is 0.1)")
+general.add_argument("--sample_rate", default=0.25, type=float, help="The rate at which to sample input (default is 0.1)")
 
 args = parser.parse_args()
 output_file = args.output
@@ -27,6 +30,14 @@ sample_rate = args.sample_rate
 
 def transform_training_data(name):
     # IMPLEMENT
+    name = name.lower()
+    punctuation = "!#$%&'()*+,-./:;<=>?@[\]^_`{|}~®™" # " is for inches
+    name = "".join([char for char in name if char not in punctuation])
+    name = " ".join(name.split()) # remove extra space
+
+    tokens = name.split()
+    stems = [STEMMER.stem(token) for token in name]
+    name = " ".join(stems)
     return name.replace('\n', ' ')
 
 # Directory for product data
