@@ -12,5 +12,9 @@
       <option value="asc" {% if sortDir == "asc" %}selected{% endif %}>Ascending</option>
       <option value="desc" {% if sortDir == "desc" %}selected{% endif %}>Descending</option>
     </select>
+    <select name="catFilter">
+      <option value="on" {% if catFilter == "on" %}selected{% endif %}>Category Filter On</option>
+      <option value="off" {% if catFilter == "off" %}selected{% endif %}>Category Filter Off</option>
+    </select>
   </form>
 </div>
